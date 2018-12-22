@@ -1,0 +1,23 @@
+{
+  "name": "mt-hardware-project",
+  "version": "1.0.0",
+  "description": "mt hardware project ",
+  "main": "socket.io.js",
+  "dependencies": {
+    "johnny-five": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maribossi/MT-Hardware-Project-1819.git"
+  },
+  "author": "Marianne Bossema",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/maribossi/MT-Hardware-Project-1819/issues"
+  },
+  "homepage": "https://github.com/maribossi/MT-Hardware-Project-1819#readme"
+}
