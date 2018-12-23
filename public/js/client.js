@@ -1,153 +1,187 @@
 var socket;
-var r, g, b;
-var x, y, z;
+var _x, _y, _z;
 var xpos, ypos;
 var status;
+var colors = [];
+var selColors = [];
+var particles = [];
+var cnv;
 
 
 function setup() {
-    createCanvas(window.innerWidth, window.innerHeight);
+    cnv = createCanvas(window.innerWidth, window.innerHeight);
+    cnv.parent('sketch-holder');
     background(0);
-    noStroke();
 
-    var size = window.innerHeight;
-
-    ellipse(window.innerWidth/2, window.innerHeight/2, size, size);
-    fill(90);
-    ellipse(window.innerWidth/2, window.innerHeight/2, size*0.7, size*0.7);
-    pieChart(size*0.7, 8);
+    xpos = ypos = _x = _y = _z = 0;
 
     socket = io();
-    socket.on('button', showColor);
+    socket.on('connected', setInitialColors);
     socket.on('playerDraw', newDrawing);
+    socket.on('colorUpdated', updateColor);
 
 }
 
+function setInitialColors(data) {
+    colors = data;
+    var w = [255, 255, 255];
+    selColors = [w, w, w];
+    drawPalette();
+    window.addEventListener('devicemotion', handleMotion);
+
+}
+
+function newDrawing(data) {
+
+    if (selColors.length < 1) return;
+    particles.push(new particle(data.x * 4, data.y * 6, selColors[2], data.alpha));
+
+    // stroke(0);
+    // strokeWeight(1);
+    // fill(selectedColor);
+    // ellipse(data.x * 4, data.y * 6, data.alpha, data.alpha);
+}
+
+function updateColor(data) {
+
+    TweenMax.to(selColors[1], 1, {0:data[0], 1:data[1],2:data[2], onComplete:onTweenComplete});
+    
+}
+
+function onTweenComplete() {
+    selColors[0] = selColors[1];
+}
 
 
+function drawPalette() {
+    noStroke();
+    if (colors.length == 8) {
+        var pieces = 8;
+        var diameter = height;
 
-function pieChart(diameter, pieces) {
-    var lastAngle = 0;
-    for (var i = 0; i < pieces; i++) {
-      var hueValue = random(255);
-      fill(hueValue);
-      arc(width/2, height/2, diameter, diameter, lastAngle, lastAngle += radians(360/pieces));
-      lastAngle += radians(360/pieces);
+        var lastAngle = 0;
+        for (var i = 0; i < pieces; i++) {
+            var hueValue = colors[i];
+            fill(hueValue);
+            arc(width / 2, height / 2, diameter, diameter, lastAngle, lastAngle + radians(360 / pieces));
+            lastAngle += radians(360 / pieces);
+        }
+    }
+}
+
+function draw() {
+    background(0);
+    drawPalette();
+
+    if (selColors[0] && selColors[1]) {
+        var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
+        var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
+
+        selColors[2] = lerpColor(c1, c2, 0.5);
 
     }
-  }
 
-  function draw() {
-    
-    //add/subract xpos and ypos
-    xpos = xpos + x;
-    ypos = ypos - y;
+    for (var particle of this.particles) {
+        particle.run();
+    }
+    // Filter removes any elements of the array that do not pass the test
+    this.particles = this.particles.filter(particle => !particle.isDead());
+
+}
+
+function keyPressed() {
+
+    var index;
+    switch (keyCode) {
+        case 49: index = 0; break;
+        case 50: index = 1; break;
+        case 51: index = 2; break;
+        case 52: index = 3; break;
+
+        case 53: index = 4; break;
+        case 54: index = 5; break;
+        case 55: index = 6; break;
+        case 56: index = 7; break;
+    }
+
+    socket.emit('update color', index);
+
+}
+
+function handleMotion(e) {
+
+    _x = parseInt(e.accelerationIncludingGravity.x);
+    _y = parseInt(e.accelerationIncludingGravity.y);
+    _z = parseInt(e.accelerationIncludingGravity.z);
+
+    // console.log("alpha = " + e.rotationRate.alpha);
+    // console.log("beta = " + e.rotationRate.beta);
+    // console.log("gamma = " + e.rotationRate.gamma);
+
+    var alpha = parseInt(e.rotationRate.alpha * 5); //
+    var beta = parseInt(e.rotationRate.beta * 5); //front to back
+    var gamma = parseInt(e.rotationRate.gamma * 5); //side to side
+
+    xpos = xpos - (_y * 0.5);
+    ypos = ypos - (_x * 0.5);
 
     // wrap ellipse if over bounds
-    if(xpos > 800) { xpos = 0; }
-    if(xpos < 0) { xpos = 800; }
-    if(ypos > 600) { ypos = 0; }
-    if(ypos < 0) { ypos = 600; }
+    if (xpos > cnv.width) { xpos = 0; }
+    if (xpos < 0) { xpos = cnv.width; }
+    if (ypos > cnv.height) { ypos = 0; }
+    if (ypos < 0) { ypos = cnv.height; }
 
-    // draw ellipse
-    fill(0);
-    ellipse(xpos, ypos, 25, 25);
 
     var data = {
         x: xpos,
         y: ypos,
-        r: r,
-        g: g,
-        b: b
+        alpha: alpha,
+        beta: beta,
+        gamma: gamma
     }
 
     socket.emit('player draw', data);
 }
 
-// function draw() {
-
-    //background(random(255));
-
-    
-    // //
-    //var d = new Date();
-    
-
-    // if (d.getSeconds() != this.secs) {
-    //     this.secs = d.getSeconds();
-
-    //     this.duration -= 1;
-    //     if (this.duration >= 0) {
-            
-    //         push();
-    //         translate(200, 540);
-    //         fill(0, 35, 90);
-    //         noStroke();
-    //         rectMode(CENTER);
-    //         ellipse(0, 0, 145);
-        
-    //         fill(255);
-    //         noStroke();
-    //         textSize(35);
-    //         textAlign(CENTER);
-    //         text(this.duration, 0, 10);
-
-    //         var p_s = this.duration/this.totaltime + .001;
-    //         noFill();
-    //         stroke(255);
-    //         strokeCap(SQUARE);
-    //         strokeWeight(4);
-    //         arc(0, 0, 140, 140, 0, p_s * 2 * PI);
-    //         pop();
-    //     }
-
-    // }
-
-// }
-
 function showColor(data) {
-    
 
-    if(data != status){
+    if (data != status) {
         status = data;
-        console.log("showColor " + status);
 
-        switch(status){
+        switch (status) {
             case "Down1":
-            background(255,0,0);
-            break;
+                drawPallette(colors[0]);
+                break;
             case "Down2":
-            background(0,255,0);
-            break;
+                drawPallette(colors[1]);
+                break;
             case "Down3":
-            background(0,0,255);
-            break;
-    
-        }
+                drawPallette(colors[2]);
+                break;
+            case "Down4":
+                drawPallette(colors[3]);
+                break;
+            case "Down5":
+                drawPallette(colors[4]);
+                break;
+            case "Down6":
+                drawPallette(colors[5]);
+                break;
+            case "Down7":
+                drawPallette(colors[6]);
+                break;
+            case "Down8":
+                drawPallette(colors[7]);
+                break;
 
+        }
 
     }
 
-    
 }
 
-function newDrawing(data) {
-    noStroke();
-    fill(data.r, data.g, data.b);
-    ellipse(data.x, data.y, 36, 36);
-}
 
-window.addEventListener('devicemotion', function(e) 
-{
-    console.log(" ///// devicemotion /////// " );
-  // get accelerometer values
-  x = parseInt(e.accelerationIncludingGravity.x);
-  y = parseInt(e.accelerationIncludingGravity.y);
-  z = parseInt(e.accelerationIncludingGravity.z); 
 
-  console.log(" ///// devicemotion /////// " + x );
-  console.log(" ///// devicemotion /////// " + y);
-  console.log(" ///// devicemotion /////// " + x);
 
-});
+
 
