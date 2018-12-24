@@ -11,24 +11,13 @@ class particle {
   }
 
   run() {
-    this.update();
-    this.display();
-  }
-
-  update() {
     this.lifespan -= 1;
-  }
-
-  // Method to display
-  display() {
-    // stroke(0, this.lifespan);
-    // strokeWeight(2);
-    // fill(this.color, this.lifespan);
     stroke(0);
     strokeWeight(1);
     fill(this.fillcolor);
     ellipse(this.xpos, this.ypos, this.size, this.size);
   }
+
 
   // Is the particle still useful?
   isDead() {

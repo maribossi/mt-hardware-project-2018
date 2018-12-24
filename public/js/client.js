@@ -5,6 +5,7 @@ var status;
 var colors = [];
 var selColors = [];
 var particles = [];
+var center = [];
 var cnv;
 
 
@@ -12,6 +13,8 @@ function setup() {
     cnv = createCanvas(window.innerWidth, window.innerHeight);
     cnv.parent('sketch-holder');
     background(0);
+    center = [width/2, height/2];
+    //frameRate(60);
 
     xpos = ypos = _x = _y = _z = 0;
 
@@ -33,19 +36,35 @@ function setInitialColors(data) {
 
 function newDrawing(data) {
 
-    if (selColors.length < 1) return;
-    particles.push(new particle(data.x * 4, data.y * 6, selColors[2], data.alpha));
+    background(0);
+    drawPalette();
 
+    if (selColors[0] && selColors[1]) {
+        var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
+        var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
+
+        selColors[2] = lerpColor(c1, c2, 0.5);
+    }
+
+    if (selColors.length < 1) return;
+    particles.push(new particle(data.x * 4, data.y * 6, selColors[2], data.alpha * 3));
+
+    for (var i = 0; i <  particles.length; i++) {
+        particles[i].run();
+    }
+        // Filter removes any elements of the array that do not pass the test
+    particles = particles.filter(particle => !particle.isDead());
+    
     // stroke(0);
     // strokeWeight(1);
-    // fill(selectedColor);
+    // fill(selColors[2]);
     // ellipse(data.x * 4, data.y * 6, data.alpha, data.alpha);
 }
 
 function updateColor(data) {
 
     TweenMax.to(selColors[1], 1, {0:data[0], 1:data[1],2:data[2], onComplete:onTweenComplete});
-    
+    selColors[1] = data;
 }
 
 function onTweenComplete() {
@@ -63,29 +82,28 @@ function drawPalette() {
         for (var i = 0; i < pieces; i++) {
             var hueValue = colors[i];
             fill(hueValue);
-            arc(width / 2, height / 2, diameter, diameter, lastAngle, lastAngle + radians(360 / pieces));
-            lastAngle += radians(360 / pieces);
+            arc(center[0], center[1], diameter, diameter, lastAngle, lastAngle + radians(45));
+            lastAngle += radians(45);
         }
     }
 }
 
 function draw() {
-    background(0);
-    drawPalette();
+    // background(0);
+    // drawPalette();
 
-    if (selColors[0] && selColors[1]) {
-        var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
-        var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
+    // if (selColors[0] && selColors[1]) {
+    //     var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
+    //     var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
 
-        selColors[2] = lerpColor(c1, c2, 0.5);
+    //     selColors[2] = lerpColor(c1, c2, 0.5);
+    // }
 
-    }
-
-    for (var particle of this.particles) {
-        particle.run();
-    }
-    // Filter removes any elements of the array that do not pass the test
-    this.particles = this.particles.filter(particle => !particle.isDead());
+    // for (var particle of this.particles) {
+    //     particle.run();
+    // }
+    // // Filter removes any elements of the array that do not pass the test
+    // this.particles = this.particles.filter(particle => !particle.isDead());
 
 }
 
@@ -112,15 +130,15 @@ function handleMotion(e) {
 
     _x = parseInt(e.accelerationIncludingGravity.x);
     _y = parseInt(e.accelerationIncludingGravity.y);
-    _z = parseInt(e.accelerationIncludingGravity.z);
+    //_z = parseInt(e.accelerationIncludingGravity.z);
 
     // console.log("alpha = " + e.rotationRate.alpha);
     // console.log("beta = " + e.rotationRate.beta);
     // console.log("gamma = " + e.rotationRate.gamma);
 
-    var alpha = parseInt(e.rotationRate.alpha * 5); //
-    var beta = parseInt(e.rotationRate.beta * 5); //front to back
-    var gamma = parseInt(e.rotationRate.gamma * 5); //side to side
+    var alpha = parseInt(e.rotationRate.alpha); //
+    // var beta = parseInt(e.rotationRate.beta * 5); //front to back
+    // var gamma = parseInt(e.rotationRate.gamma * 5); //side to side
 
     xpos = xpos - (_y * 0.5);
     ypos = ypos - (_x * 0.5);
@@ -135,9 +153,10 @@ function handleMotion(e) {
     var data = {
         x: xpos,
         y: ypos,
-        alpha: alpha,
-        beta: beta,
-        gamma: gamma
+        alpha: alpha
+        // ,
+        // beta: beta,
+        // gamma: gamma
     }
 
     socket.emit('player draw', data);

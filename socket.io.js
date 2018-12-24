@@ -84,7 +84,6 @@ io.on('connection', function (client) {
     });
 
 
-    /*
     five.Board().on("ready", function () {
         
         button1 = new five.Button({
@@ -123,63 +122,48 @@ io.on('connection', function (client) {
 
         button1.on("down", function (value) {
             console.log("Down1");
-            //client.emit('button', "Down1");
-            client.emit('colorUpdated', colors[0]);
+            io.emit('colorUpdated', colors[0]);
         });
         
         button2.on("down", function (value) {
             console.log("Down2");
-            //client.emit('button', "Down2");
-            client.emit('colorUpdated', colors[1]);
+            io.emit('colorUpdated', colors[1]);
         });
 
         button3.on("down", function (value) {
             console.log("Down3");
-            //client.emit('button', "Down3");
-            client.emit('colorUpdated', colors[2]);
-            
+            io.emit('colorUpdated', colors[2]);
         });
 
         button4.on("down", function (value) {
             console.log("Down4");
-            //client.emit('button', "Down4");
-            client.emit('colorUpdated', colors[3]);
+            io.emit('colorUpdated', colors[3]);
         });
         
         button5.on("down", function (value) {
             console.log("Down5");
-            //client.emit('button', "Down5");
-            client.emit('colorUpdated', colors[4]);
+            io.emit('colorUpdated', colors[4]);
         });
 
         button6.on("down", function (value) {
             console.log("Down6");
-            //client.emit('button', "Down6");
-            client.emit('colorUpdated', colors[5]);
-            
+            io.emit('colorUpdated', colors[5]);
         });
 
         button7.on("down", function (value) {
             console.log("Down7");
-            //client.emit('button', "Down7");
-            client.emit('colorUpdated', colors[6]);
+            io.emit('colorUpdated', colors[6]);
         });
 
         button8.on("down", function (value) {
             console.log("Down8");
-            //client.emit('button', "Down8");
-            client.emit('colorUpdated', colors[7]);
-            
+            io.emit('colorUpdated', colors[7]);
         });
 
-
-
-
     });
-*/
 
     client.on('disconnect', function () {
-        // remove this player from our players object
+        // remove player from  players object
         delete clients[client.id];
         console.log('user disconnected ' + Object.keys(clients).length);
         // emit a message to all players to remove this player
