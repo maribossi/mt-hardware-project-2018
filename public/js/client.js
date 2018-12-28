@@ -1,6 +1,6 @@
 var socket;
 var _x, _y, _z;
-var xpos, ypos;
+var xpos, ypos, prev_xpos, prev_ypos;
 var status;
 var colors = [];
 var selColors = [];
@@ -8,37 +8,42 @@ var particles = [];
 var center = [];
 var cnv;
 
+var cp;
+
 
 function setup() {
     cnv = createCanvas(window.innerWidth, window.innerHeight);
+    //parent sketch-holder is used to scale up the sketch (in css) for beamer projection
     cnv.parent('sketch-holder');
     background(0);
     center = [width/2, height/2];
-    //frameRate(60);
 
-    xpos = ypos = _x = _y = _z = 0;
+    xpos = ypos = prev_xpos = prev_ypos = 100;
+    _x = _y = _z = 0;
 
     socket = io();
-    socket.on('connected', setInitialColors);
-    socket.on('playerDraw', newDrawing);
-    socket.on('colorUpdated', updateColor);
-
+    socket.on('connected', initialize);
+    socket.on('playerDraw', drawMotionData);
+    socket.on('colorUpdated', updateColorWithTween);
 }
 
-function setInitialColors(data) {
+function initialize(data) {
     colors = data;
     var w = [255, 255, 255];
     selColors = [w, w, w];
+
     drawPalette();
-    window.addEventListener('devicemotion', handleMotion);
+
+    window.addEventListener('devicemotion', collectAndEmitMotionData);
 
 }
 
-function newDrawing(data) {
+function drawMotionData(data) {
 
     background(0);
     drawPalette();
 
+    //interpolate color values
     if (selColors[0] && selColors[1]) {
         var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
         var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
@@ -47,12 +52,13 @@ function newDrawing(data) {
     }
 
     if (selColors.length < 1) return;
-    particles.push(new particle(data.x * 4, data.y * 6, selColors[2], data.alpha * 3));
+    particles.push(new particle(data.x*4, data.y*6, selColors[2], data.alpha));
 
     for (var i = 0; i <  particles.length; i++) {
         particles[i].run();
     }
-        // Filter removes any elements of the array that do not pass the test
+
+    // removes particle from the array when it died
     particles = particles.filter(particle => !particle.isDead());
     
     // stroke(0);
@@ -61,7 +67,7 @@ function newDrawing(data) {
     // ellipse(data.x * 4, data.y * 6, data.alpha, data.alpha);
 }
 
-function updateColor(data) {
+function updateColorWithTween(data) {
 
     TweenMax.to(selColors[1], 1, {0:data[0], 1:data[1],2:data[2], onComplete:onTweenComplete});
     selColors[1] = data;
@@ -89,25 +95,11 @@ function drawPalette() {
 }
 
 function draw() {
-    // background(0);
-    // drawPalette();
-
-    // if (selColors[0] && selColors[1]) {
-    //     var c1 = color(selColors[0][0], selColors[0][1], selColors[0][2], 255);
-    //     var c2 = color(selColors[1][0], selColors[1][1], selColors[1][2], 255);
-
-    //     selColors[2] = lerpColor(c1, c2, 0.5);
-    // }
-
-    // for (var particle of this.particles) {
-    //     particle.run();
-    // }
-    // // Filter removes any elements of the array that do not pass the test
-    // this.particles = this.particles.filter(particle => !particle.isDead());
-
+    // needed to listen to key press events (used for debugging without hardware)
 }
 
 function keyPressed() {
+     // used for debugging without hardware, to select colors
 
     var index;
     switch (keyCode) {
@@ -126,78 +118,48 @@ function keyPressed() {
 
 }
 
-function handleMotion(e) {
+function collectAndEmitMotionData(e) {
 
     _x = parseInt(e.accelerationIncludingGravity.x);
     _y = parseInt(e.accelerationIncludingGravity.y);
     //_z = parseInt(e.accelerationIncludingGravity.z);
 
-    // console.log("alpha = " + e.rotationRate.alpha);
-    // console.log("beta = " + e.rotationRate.beta);
-    // console.log("gamma = " + e.rotationRate.gamma);
-
-    var alpha = parseInt(e.rotationRate.alpha); //
+    var alpha = parseInt(8 + e.rotationRate.alpha * 1.5); //
     // var beta = parseInt(e.rotationRate.beta * 5); //front to back
     // var gamma = parseInt(e.rotationRate.gamma * 5); //side to side
 
+   
     xpos = xpos - (_y * 0.5);
     ypos = ypos - (_x * 0.5);
 
-    // wrap ellipse if over bounds
-    if (xpos > cnv.width) { xpos = 0; }
-    if (xpos < 0) { xpos = cnv.width; }
-    if (ypos > cnv.height) { ypos = 0; }
-    if (ypos < 0) { ypos = cnv.height; }
+    
 
+    if (xpos > window.innerWidth/2) { xpos -= window.innerWidth/2; }
+    if (xpos < 0) { xpos = window.innerWidth/2; }
+    if (ypos > window.innerHeight/2) { ypos -= window.innerHeight/2; }
+    if (ypos < 0) { ypos = window.innerHeight/2; }
 
-    var data = {
-        x: xpos,
-        y: ypos,
-        alpha: alpha
-        // ,
-        // beta: beta,
-        // gamma: gamma
-    }
+    if( xpos != prev_xpos || ypos != prev_ypos) 
+    {
 
-    socket.emit('player draw', data);
-}
+        prev_xpos = xpos;
+        prev_ypos = ypos;
 
-function showColor(data) {
-
-    if (data != status) {
-        status = data;
-
-        switch (status) {
-            case "Down1":
-                drawPallette(colors[0]);
-                break;
-            case "Down2":
-                drawPallette(colors[1]);
-                break;
-            case "Down3":
-                drawPallette(colors[2]);
-                break;
-            case "Down4":
-                drawPallette(colors[3]);
-                break;
-            case "Down5":
-                drawPallette(colors[4]);
-                break;
-            case "Down6":
-                drawPallette(colors[5]);
-                break;
-            case "Down7":
-                drawPallette(colors[6]);
-                break;
-            case "Down8":
-                drawPallette(colors[7]);
-                break;
-
+        var data = {
+            x: xpos,
+            y: ypos,
+            alpha: alpha
         }
+    
+        socket.emit('player draw', data);
 
     }
 
+   
 }
+
+
+
 
 
 

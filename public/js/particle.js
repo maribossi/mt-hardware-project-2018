@@ -7,12 +7,16 @@ class particle {
     this.xpos = _x;
     this.ypos = _y;
     this.lifespan = 300.0;
-    
   }
 
   run() {
     this.lifespan -= 1;
-    stroke(0);
+    
+    if(this.fillcolor == "rgba(0,0,0,1)"){
+      stroke(100);
+    } else {
+      stroke(0);
+    }
     strokeWeight(1);
     fill(this.fillcolor);
     ellipse(this.xpos, this.ypos, this.size, this.size);

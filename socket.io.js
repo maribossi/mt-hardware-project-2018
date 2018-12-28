@@ -1,16 +1,4 @@
-// The `isPullup` button option enables the pullup
-// resistor on the pin and automatically sets the
-// `invert` option to true
-
-// In this circuit configuration, the LED would always
-// be on without the pullup resistor enabled
-
-// For more info on pullup resistors, see:
-// http://arduino.cc/en/Tutorial/InputPullupSerial
-// http://arduino.cc/en/Tutorial/DigitalPins
-// https://learn.sparkfun.com/tutorials/pull-up-resistors
-
-//'use strict';
+'use strict';
 
 var express = require('express');
 var app = express();
@@ -67,14 +55,15 @@ app.get('/', function (req, res) {
 // Listen to the web socket connection
 io.on('connection', function (client) {
     
+    // add client to list
     clients[client.id] = {
         clientId: client.id
     };
     console.log('a client connected ' + Object.keys(clients).length);
-
     client.emit('connected', colors);
 
     client.on('player draw', function (data) {
+        console.log('player draw x ' + data.x);
         io.emit('playerDraw', data);
     });
 
@@ -83,7 +72,13 @@ io.on('connection', function (client) {
         io.emit('colorUpdated', selectedColor);
     });
 
+    client.on('disconnect', function () {
+        // remove client from  list
+        delete clients[client.id];
+        console.log('user disconnected ' + Object.keys(clients).length);
+    });
 
+    
     five.Board().on("ready", function () {
         
         button1 = new five.Button({
@@ -161,14 +156,9 @@ io.on('connection', function (client) {
         });
 
     });
+    
 
-    client.on('disconnect', function () {
-        // remove player from  players object
-        delete clients[client.id];
-        console.log('user disconnected ' + Object.keys(clients).length);
-        // emit a message to all players to remove this player
-        //io.emit('disconnect', players);
-    });
+    
 });
 
 
